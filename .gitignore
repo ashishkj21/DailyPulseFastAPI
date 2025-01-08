@@ -1,0 +1,51 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+*.env
+
+# Environment variables
+.env
+
+# macOS files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs and debug
+*.log
+*.sqlite3
+
+# Python testing
+.pytest_cache/
+.tox/
+.nox/
+
+# Generated files
+*.out
+*.bak
+*.swp
+*.tmp
+*.old
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Build files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Slack Bolt and related cache files
+*.db
+.cache/

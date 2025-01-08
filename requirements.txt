@@ -1,0 +1,7 @@
+fastapi
+slack-sdk
+slack-bolt
+python-dotenv
+langchain
+openai # Assuming it's required for langchain_openai
+uvicorn # FastAPI server
