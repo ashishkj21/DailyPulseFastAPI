@@ -51,7 +51,6 @@ def handle_mentions(event, say):
     slack_token = os.getenv("SLACK_BOT_TOKEN")
     text = event["text"]
 
-    say("Sure, I'll get right on that!")
     response = collect_standup_update(text, user_id, slack_token)
     say(response)
 
@@ -72,5 +71,4 @@ async def slack_events(request: Request):
 
 # Run the app
 # uvicorn app:app --reload --port 3000
-
 
