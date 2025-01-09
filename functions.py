@@ -33,25 +33,31 @@ def get_slack_user_name(user_id, slack_token):
         print(f"Error fetching user info: {e.response['error']}")
         return "User"
 
-def store_github_data(user_id, data):
-    filename = f"{user_id}_github_data.json"
-    with open(filename, "w") as f:
-        json.dump(data, f)
-
-def load_github_data(user_id):
-    filename = f"{user_id}_github_data.json"
-    try:
-        with open(filename, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
-
-def collect_standup_update(user_input, user_id, slack_token, is_first_interaction=True):
+def collect_standup_update(text, user_id, slack_token, event):
+    # Process the event data as needed
+    channel = event.get("channel")
+    timestamp = event.get("ts")
+    
+    # Fetch the user's name
     name = get_slack_user_name(user_id, slack_token)
+    
+    # Initialize the chat model
     chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.5)
+    
+    # Extract context from the event (e.g., previous messages in the channel)
+    client = WebClient(token=slack_token)
+    try:
+        # Fetch the last 10 messages from the channel to provide context
+        history_response = client.conversations_history(channel=channel, limit=10)
+        messages = history_response["messages"]
+        context = "\n".join([msg["text"] for msg in messages])
+    except SlackApiError as e:
+        print(f"Error fetching channel history: {e.response['error']}")
+        context = ""
 
+    # Create the prompt template with the context
     prompt_template = ChatPromptTemplate.from_messages([
-        ("system", """
+        ("system", f"""
         You are a helpful assistant that collects daily standup updates from the user.
 
         Before responding to the user, gather all relevant information regarding their work from GitHub, including:
@@ -64,9 +70,12 @@ def collect_standup_update(user_input, user_id, slack_token, is_first_interactio
         - Plans for today (based on open PRs, ongoing issues, or recent comments)
         - Any blockers or challenges (e.g., unresolved issues, pending reviews, or comments indicating challenges)
 
-        Present the draft to the user and ask: "Is this correct?". Allow the user to edit the information if needed.
+        Present the draft to the user and ask: "Is this correct {name}?". Allow the user to edit the information if needed.
 
-        Remember to store the collected GitHub data locally to avoid repeated queries in the future.
+        Use the Slack channel history to understand the context and avoid repeated queries in the future.
+
+        Context from the channel:
+        {context}
         """),
         ("human", "{input}"),
         MessagesPlaceholder("agent_scratchpad"),
@@ -122,23 +131,11 @@ def collect_standup_update(user_input, user_id, slack_token, is_first_interactio
     agent = create_tool_calling_agent(llm=chat, prompt=prompt_template, tools=tools)
     agent_executor = AgentExecutor(agent=agent, tools=tools)
 
-    # Load previously stored GitHub data
-    github_data = load_github_data(user_id)
+    # Fetch issues data from GitHub
+    issues_data = github.get_issues()  # Assuming get_issues() fetches relevant issues data
 
-    if github_data:
-        # Use stored data in the agent's context
-        context = f"Previously stored GitHub data: {json.dumps(github_data)}"
-        user_input = f"{context}\n\n{user_input}"
-
-    response = agent_executor.invoke({"input": user_input, "name": name})
-
-    # Extract GitHub data from the response and store it
-    github_data = {
-        "issues": response.get("issues", []),
-        "pull_requests": response.get("pull_requests", []),
-        "comments": response.get("comments", [])
-    }
-    store_github_data(user_id, github_data)
+    # Include the "issues" variable in the input
+    response = agent_executor.invoke({"input": text, "name": name, "issues": issues_data})
 
     response["text"] = response["output"]
     response["user_input"] = response["input"]
