@@ -51,8 +51,28 @@ def handle_mentions(event, say):
     slack_token = os.getenv("SLACK_BOT_TOKEN")
     text = event["text"]
 
-    response = collect_standup_update(text, user_id, slack_token)
+    response = collect_standup_update(text, user_id, slack_token, event)
     say(response)
+
+
+@slack_app.event("message")
+def handle_messages(event, say):
+    """
+    Event listener for messages in Slack.
+    This function processes the text and sends a response based on the message type.
+
+    Args:
+        event (dict): The event data received from Slack.
+        say (callable): A function for sending a response to the channel.
+    """
+    user_id = event["user"]
+    slack_token = os.getenv("SLACK_BOT_TOKEN")
+    text = event["text"]
+    channel_type = event.get("channel_type")
+
+    if channel_type == "im":
+        response = collect_standup_update(text, user_id, slack_token, event)
+        say(response)
 
 
 @app.post("/slack/events")
