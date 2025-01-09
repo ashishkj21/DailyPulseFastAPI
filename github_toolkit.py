@@ -81,7 +81,7 @@ print(type(tools))
 agent_executor = create_react_agent(llm, tools)
 
 # Example query to get issues
-example_query = "What is issue number 1?"
+example_query = "What are the comments on the PR #3?"
 
 try:
     events = agent_executor.stream(
